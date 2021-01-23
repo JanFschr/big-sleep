@@ -240,6 +240,11 @@ class Imagine(nn.Module):
                     num = total_iterations // self.save_every
                     save_image(image, Path(f'./{self.textpath}.{num}.png'))
 
+                    # save latents, TODO make conditional on a setting
+                    lats = self.model.model.latents
+                    lats.best = best # saving this just in case it might be useful
+                    torch.save(lats, Path(f'./{self.textpath}.{num}.pth'))
+
         return total_loss
 
     def forward(self):
