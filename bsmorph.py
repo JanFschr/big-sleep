@@ -9,9 +9,6 @@ from PIL import Image
 import numpy as np
 from big_sleep.biggan import BigGAN
 from torchvision.utils import save_image
-#from pytorch_pretrained_biggan import (BigGAN, truncated_noise_sample, save_as_images)
-
-# use together with https://github.com/huggingface/pytorch-pretrained-BigGAN
 
 
 parser = argparse.ArgumentParser()
@@ -30,10 +27,11 @@ imgSize = opt.imageSize
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-# ladataan latenssitiedot
+# load two latents for the start and endpoint
 lat1 = torch.load(opt.lat1)
 lat2 = torch.load(opt.lat2)
 
+# not used at the moment
 best1 = lat1.best
 best2 = lat2.best
 
@@ -43,13 +41,16 @@ class1 = lat1.cls.to(device)
 class2 = lat2.cls.to(device)
 
 
-# ladataan biggan
 # load biggan
 model = BigGAN.from_pretrained(f'biggan-deep-{imgSize}')
 model.eval()
 
 truncation = opt.trunc
 model.to(device)
+
+# very crude interpolation used
+# which may even miss the right endpoint
+# feel free to use your own
 
 n_delta = (noise2 - noise1) / opt.steps
 c_delta = (class2 - class1) / opt.steps
