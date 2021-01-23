@@ -1,3 +1,27 @@
+big-sleep modified to store latents together with intermediate images
+
+
+From text to image:
+
+```
+python gen.py "a castle made of ice"
+```
+
+This will output, for each epoch, both an image and a checkpoint pth file (which can then be used to generate a morph between two stored checkpoints).
+
+Generate morph:
+
+```
+python bsmorph.py --lat1 examples/a_castle_made_of_ice.1.pth --lat2 examples/a_woodcarving_clock.2.pth --savePath morf --name ice2wood --steps 200
+```
+
+You can then use ffmpeg to make a video from the generated frames, e.g.
+
+```
+ffmpeg -r 12 -i morf/ice2wood%d.png -vf fps=25 -pix_fmt yuv420p ice2wood.mp4
+```
+
+----------------------------------------------------------------------------------------------------------------------------------------
 <img src="./samples/artificial_intelligence.png" width="250px"></img>
 
 *artificial intelligence*
