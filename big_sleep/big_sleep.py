@@ -201,7 +201,7 @@ class Imagine(nn.Module):
         self.lr = lr
         self.adabelief=adabelief
         
-        if self.ababelief:
+        if self.adabelief:
             self.optimizer = Adam(model.model.latents.parameters(), lr)
         else:
             self.optimizer = AdaBelief(model.parameters(), lr=lr, eps=1e-16, betas=(0.9,0.999), weight_decouple = True, rectify = False)
