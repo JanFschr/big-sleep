@@ -183,6 +183,9 @@ class Imagine(nn.Module):
         save_latents=False
     ):
         super().__init__()
+        
+        self.seed = seed
+        self.save_latents = save_latents
 
         if exists(seed):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation, yet (ask pytorch)'
