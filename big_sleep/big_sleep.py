@@ -180,7 +180,7 @@ class Imagine(nn.Module):
         open_folder = True,
         seed = None,
         adabelief=True,
-        save_latent=False
+        save_latents=False
     ):
         super().__init__()
 
