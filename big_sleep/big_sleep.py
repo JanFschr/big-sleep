@@ -179,7 +179,7 @@ class Imagine(nn.Module):
         bilinear = False,
         open_folder = True,
         seed = None,
-        adabelief=False
+        adabelief=True
     ):
         super().__init__()
 
