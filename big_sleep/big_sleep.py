@@ -179,7 +179,8 @@ class Imagine(nn.Module):
         bilinear = False,
         open_folder = True,
         seed = None,
-        adabelief=True
+        adabelief=True,
+        save_latent=False
     ):
         super().__init__()
 
@@ -204,7 +205,7 @@ class Imagine(nn.Module):
         if self.adabelief:
             self.optimizer = Adam(model.model.latents.parameters(), lr)
         else:
-            self.optimizer = AdaBelief(model.parameters(), lr=lr, eps=1e-16, betas=(0.9,0.999), weight_decouple = True, rectify = False)
+            self.optimizer = AdaBelief(model.model.latents.parameters(), lr=lr, eps=1e-16, betas=(0.9,0.999), weight_decouple = True, rectify = False)
         
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
@@ -216,7 +217,10 @@ class Imagine(nn.Module):
 
     def set_text(self, text):
         self.text = text
-        textpath = self.text.replace(' ','_')
+        textpath = self.text.replace(' ','_').replace('.','_')[:30]
+        #textpath = datetime.now().strftime("%Y%m%d-%H%M%S-") + textpath
+        if exists(self.seed):
+            textpath = str(self.seed) + '-' + textpath
 
         self.textpath = textpath
         self.filename = Path(f'./{textpath}.png')
@@ -224,7 +228,11 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        if self.adabelief:
+            self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        else:
+            self.optimizer = AdaBelief(self.model.model.latents.parameters(), lr=self.lr, eps=1e-16, betas=(0.9,0.999), weight_decouple = True, rectify = False)
+        
 
     def train_step(self, epoch, i):
         total_loss = 0
@@ -249,11 +257,12 @@ class Imagine(nn.Module):
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
                     save_image(image, Path(f'./{self.textpath}.{num}.png'))
-
-                    # save latents, TODO make conditional on a setting
-                    lats = self.model.model.latents
-                    lats.best = best # saving this just in case it might be useful
-                    torch.save(lats, Path(f'./{self.textpath}.{num}.pth'))
+                    
+                    if self.save_latents:
+                        # save latents
+                        lats = self.model.model.latents
+                        lats.best = best # saving this just in case it might be useful
+                        torch.save(lats, Path(f'./{self.textpath}.{num}.pth'))
 
         return total_loss
 
