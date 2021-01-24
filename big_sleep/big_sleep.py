@@ -261,13 +261,13 @@ class Imagine(nn.Module):
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
                     num = total_iterations // self.save_every
-                    save_image(image, Path(f'./{self.textpath}.{num}.png'))
+                    save_image(image, Path(f'./{self.textpath}.{num:03d}.png'))
                     
                     if self.save_latents:
                         # save latents
                         lats = self.model.model.latents
                         lats.best = best # saving this just in case it might be useful
-                        torch.save(lats, Path(f'./{self.textpath}.{num}.pth'))
+                        torch.save(lats, Path(f'./{self.textpath}.{num:03d}.pth'))
 
         return total_loss
 
