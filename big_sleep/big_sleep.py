@@ -19,6 +19,9 @@ from big_sleep.clip import load, tokenize, normalize_image
 
 from einops import rearrange
 
+from adabelief_pytorch import AdaBelief
+
+
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
 # graceful keyboard interrupt
@@ -175,7 +178,8 @@ class Imagine(nn.Module):
         save_progress = False,
         bilinear = False,
         open_folder = True,
-        seed = None
+        seed = None,
+        adabelief=False
     ):
         super().__init__()
 
@@ -195,7 +199,13 @@ class Imagine(nn.Module):
         self.model = model
 
         self.lr = lr
-        self.optimizer = Adam(model.model.latents.parameters(), lr)
+        self.adabelief=adabelief
+        
+        if self.ababelief:
+            self.optimizer = Adam(model.model.latents.parameters(), lr)
+        else:
+            self.optimizer = AdaBelief(model.parameters(), lr=lr, eps=1e-16, betas=(0.9,0.999), weight_decouple = True, rectify = False)
+        
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
 
