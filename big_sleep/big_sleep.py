@@ -213,10 +213,10 @@ class Imagine(nn.Module):
                                            weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
                                            fixed_decay=self.adabelief_args.fixed_decay, rectify=self.adabelief_args.rectify)
             else:
-                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.lr, betas=(0.5, 0.999), eps=1e-12,
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
-            self.optimizer = Adam(model.model.latents.parameters(), lr)
+            self.optimizer = Adam(model.model.latents.parameters(), self.lr)
             
         
         self.gradient_accumulate_every = gradient_accumulate_every
@@ -246,10 +246,10 @@ class Imagine(nn.Module):
                                            weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
                                            fixed_decay=self.adabelief_args.fixed_decay, rectify=self.adabelief_args.rectify)
             else:
-                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.lr, betas=(0.5, 0.999), eps=1e-12,
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
-            self.optimizer = Adam(model.model.latents.parameters(), lr)
+            self.optimizer = Adam(model.model.latents.parameters(), self.lr)
         
 
     def train_step(self, epoch, i):
