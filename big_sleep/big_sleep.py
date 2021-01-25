@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 from torch.optim import Adam
 
+
 import torchvision
 from torchvision.utils import save_image
 
@@ -20,7 +21,7 @@ from big_sleep.clip import load, tokenize, normalize_image
 from einops import rearrange
 
 from adabelief_pytorch import AdaBelief
-
+from torch.optim.lr_scheduler import LambdaLR
 
 assert torch.cuda.is_available(), 'CUDA must be available in order to use Deep Daze'
 
@@ -182,7 +183,8 @@ class Imagine(nn.Module):
         adabelief=True,
         save_latents=False,
         adabelief_args = None,
-        clip_grad = None
+        clip_grad = None,
+        lr_scheduling = False
     ):
         super().__init__()
         
@@ -220,6 +222,8 @@ class Imagine(nn.Module):
         else:
             self.optimizer = Adam(model.model.latents.parameters(), self.lr)
             
+        self.lr_scheduler =  torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=LambdaLR(epochs, -1, 0).step)
+            
         
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
@@ -252,6 +256,7 @@ class Imagine(nn.Module):
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
             self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+       self.lr_scheduler =  torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=LambdaLR(epochs, -1, 0).step)
         
 
     def train_step(self, epoch, i):
@@ -268,6 +273,7 @@ class Imagine(nn.Module):
             torch.nn.utils.clip_grad_norm_(self.model.model.latents.parameters(), self.clip_grad)
         self.optimizer.step()
         self.optimizer.zero_grad()
+        self.lr_scheduler.step()
         
 
         if (i + 1) % self.save_every == 0:
