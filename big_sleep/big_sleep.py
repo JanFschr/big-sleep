@@ -180,7 +180,8 @@ class Imagine(nn.Module):
         open_folder = True,
         seed = None,
         adabelief=True,
-        save_latents=False
+        save_latents=False,
+        adabelief_args = None
     ):
         super().__init__()
         
@@ -206,8 +207,14 @@ class Imagine(nn.Module):
         self.adabelief=adabelief
         
         if self.adabelief:
-            self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
-                 weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
+            if adabelief_args not none:
+                self.adabelief_args = adabelief_args
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.adabelief_args.lr, betas=(self.adabelief_args.b1, self.adabelief_args.b2), eps=self.adabelief_args.eps,
+                                           weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
+                                           fixed_decay=self.adabelief_args.fixed_decay, rectify=self.adabelief_args.rectify)
+            else:
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
+                                           weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
             self.optimizer = Adam(model.model.latents.parameters(), lr)
             
@@ -233,11 +240,14 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        if self.adabelief:
-            self.optimizer = AdaBelief(self.model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
-                 weight_decay=0, amsgrad=False, weight_decouple=False, fixed_decay=False, rectify=True)
-        else:
-            self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        if self.adabelief_args not none:
+                #self.adabelief_args = adabelief_args
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.adabelief_args.lr, betas=(self.adabelief_args.b1, self.adabelief_args.b2), eps=self.adabelief_args.eps,
+                                           weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
+                                           fixed_decay=self.adabelief_args.fixed_decay, rectify=self.adabelief_args.rectify)
+            else:
+                self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
+                                           weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         
 
     def train_step(self, epoch, i):
