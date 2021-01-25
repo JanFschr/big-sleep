@@ -256,7 +256,7 @@ class Imagine(nn.Module):
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
             self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
-       self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=LambdaLR(epochs, -1, 0).step)
+        self.lr_scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=LambdaLR(epochs, -1, 0).step)
         
 
     def train_step(self, epoch, i):
