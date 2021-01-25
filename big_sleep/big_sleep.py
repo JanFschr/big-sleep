@@ -206,10 +206,11 @@ class Imagine(nn.Module):
         self.adabelief=adabelief
         
         if self.adabelief:
-            self.optimizer = Adam(model.model.latents.parameters(), lr)
-        else:
             self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
                  weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
+        else:
+            self.optimizer = Adam(model.model.latents.parameters(), lr)
+            
         
         self.gradient_accumulate_every = gradient_accumulate_every
         self.save_every = save_every
@@ -233,10 +234,10 @@ class Imagine(nn.Module):
     def reset(self):
         self.model.reset()
         if self.adabelief:
-            self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
-        else:
             self.optimizer = AdaBelief(self.model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
                  weight_decay=0, amsgrad=False, weight_decouple=False, fixed_decay=False, rectify=True)
+        else:
+            self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
         
 
     def train_step(self, epoch, i):
