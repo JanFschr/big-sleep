@@ -207,7 +207,7 @@ class Imagine(nn.Module):
         self.adabelief=adabelief
         
         if self.adabelief:
-            if adabelief_args not none:
+            if adabelief_args not None:
                 self.adabelief_args = adabelief_args
                 self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.adabelief_args.lr, betas=(self.adabelief_args.b1, self.adabelief_args.b2), eps=self.adabelief_args.eps,
                                            weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
@@ -240,7 +240,7 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        if self.adabelief_args not none:
+        if self.adabelief_args not None:
                 #self.adabelief_args = adabelief_args
                 self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.adabelief_args.lr, betas=(self.adabelief_args.b1, self.adabelief_args.b2), eps=self.adabelief_args.eps,
                                            weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
