@@ -209,6 +209,7 @@ class Imagine(nn.Module):
         self.lr = lr
         self.adabelief=adabelief
         self.clip_grad = clip_grad
+        self.lr_scheduling = lr_scheduling
         
         if self.adabelief:
             if adabelief_args != None:
@@ -221,8 +222,8 @@ class Imagine(nn.Module):
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
             self.optimizer = Adam(model.model.latents.parameters(), self.lr)
-            
-        self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)
+        if lr_scheduling:    
+            self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)
             
         
         self.gradient_accumulate_every = gradient_accumulate_every
@@ -256,6 +257,7 @@ class Imagine(nn.Module):
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
         else:
             self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
+        if self.lr_scheduling:
         self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)        
 
     def train_step(self, epoch, i):
@@ -272,7 +274,7 @@ class Imagine(nn.Module):
             torch.nn.utils.clip_grad_norm_(self.model.model.latents.parameters(), self.clip_grad)
         self.optimizer.step()
         self.optimizer.zero_grad()
-        self.lr_scheduler.step()
+        if self.lr_scheduling: self.lr_scheduler.step()
         
 
         if (i + 1) % self.save_every == 0:
