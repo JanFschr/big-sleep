@@ -270,6 +270,12 @@ class Imagine(nn.Module):
                 image = self.model.model()[best].cpu()
                 save_image(image, str(self.filename))
                 print(f'image updated at "./{str(self.filename)}"')
+                
+                if self.save_latents:
+                    # save latents
+                    lats = self.model.model.latents
+                    lats.best = best # saving this just in case it might be useful
+                    torch.save(lats, Path(f'./{self.textpath}.pth'))
 
                 if self.save_progress:
                     total_iterations = epoch * self.iterations + i
