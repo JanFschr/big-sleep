@@ -258,7 +258,7 @@ class Imagine(nn.Module):
         else:
             self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
         if self.lr_scheduling:
-        self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)        
+            self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)        
 
     def train_step(self, epoch, i):
         total_loss = 0
