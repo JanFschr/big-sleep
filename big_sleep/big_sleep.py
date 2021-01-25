@@ -240,13 +240,16 @@ class Imagine(nn.Module):
 
     def reset(self):
         self.model.reset()
-        if self.adabelief_args != None:
+        if self.adabelief:
+            if self.adabelief_args != None:
                 self.optimizer = AdaBelief(model.model.latents.parameters(), lr=self.adabelief_args.lr, betas=(self.adabelief_args.b1, self.adabelief_args.b2), eps=self.adabelief_args.eps,
                                            weight_decay=self.adabelief_args.weight_decay, amsgrad=self.adabelief_args.amsgrad, weight_decouple=self.adabelief_args.weight_decouple, 
                                            fixed_decay=self.adabelief_args.fixed_decay, rectify=self.adabelief_args.rectify)
             else:
                 self.optimizer = AdaBelief(model.model.latents.parameters(), lr=2e-4, betas=(0.5, 0.999), eps=1e-12,
                                            weight_decay=0, amsgrad=False, weight_decouple=True, fixed_decay=False, rectify=True)
+        else:
+            self.optimizer = Adam(model.model.latents.parameters(), lr)
         
 
     def train_step(self, epoch, i):
