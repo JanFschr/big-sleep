@@ -64,6 +64,23 @@ def open_folder(path):
     except OSError:
         pass
 
+# tensor helpers
+
+def differentiable_topk(x, k, temperature=1.):
+    n, dim = x.shape
+    topk_tensors = []
+
+    for i in range(k):
+        is_last = i == (k - 1)
+        values, indices = (x / temperature).softmax(dim=-1).topk(1, dim=-1)
+        topks = torch.zeros_like(x).scatter_(-1, indices, values)
+        topk_tensors.append(topks)
+        if not is_last:
+            x = x.scatter(-1, indices, float('-inf'))
+
+    topks = torch.cat(topk_tensors, dim=-1)
+    return topks.reshape(n, k, dim).sum(dim = 1)
+
 # load clip
 
 perceptor, preprocess = load()
@@ -71,24 +88,49 @@ perceptor, preprocess = load()
 # load biggan
 
 class Latents(torch.nn.Module):
-    def __init__(self, num_latents = 32):
+    def __init__(
+        self,
+        num_latents = 32,
+        num_classes = None,
+        class_temperature = 2.
+    ):
         super().__init__()
         self.normu = torch.nn.Parameter(torch.zeros(num_latents, 128).normal_(std = 1))
         self.cls = torch.nn.Parameter(torch.zeros(num_latents, 1000).normal_(mean = -3.9, std = .3))
         self.register_buffer('thresh_lat', torch.tensor(1))
 
+        assert not exists(num_classes) or num_classes > 0 and num_classes <= 1000, 'num classes must be between 0 and 1000'
+        self.num_classes = num_classes
+        self.class_temperature = class_temperature
+
     def forward(self):
-        return self.normu, torch.sigmoid(self.cls)
+        if exists(self.num_classes):
+            classes = differentiable_topk(self.cls, self.num_classes, temperature = self.class_temperature)
+        else:
+            classes = torch.sigmoid(self.cls)
+
+        return self.normu, classes
 
 class Model(nn.Module):
-    def __init__(self, image_size):
+    def __init__(
+        self,
+        image_size,
+        num_classes = None,
+        class_temperature = 2.
+    ):
         super().__init__()
         assert image_size in (128, 256, 512), 'image size must be one of 128, 256, or 512'
         self.biggan = BigGAN.from_pretrained(f'biggan-deep-{image_size}')
+
+        self.num_classes = num_classes
+        self.class_temperature = class_temperature
         self.init_latents()
 
     def init_latents(self):
-        self.latents = Latents()
+        self.latents = Latents(
+            num_classes = self.num_classes,
+            class_temperature = self.class_temperature
+        )
 
     def forward(self):
         self.biggan.eval()
@@ -103,7 +145,9 @@ class BigSleep(nn.Module):
         num_cutouts = 128,
         loss_coef = 100,
         image_size = 512,
-        bilinear = False
+        bilinear = False,
+        num_classes = None,
+        class_temperature = 2.
     ):
         super().__init__()
         self.loss_coef = loss_coef
@@ -113,7 +157,9 @@ class BigSleep(nn.Module):
         self.interpolation_settings = {'mode': 'bilinear', 'align_corners': False} if bilinear else {'mode': 'nearest'}
 
         self.model = Model(
-            image_size = image_size
+            image_size = image_size,
+            num_classes = num_classes,
+            class_temperature = class_temperature
         )
 
     def reset(self):
@@ -184,7 +230,10 @@ class Imagine(nn.Module):
         save_latents=False,
         adabelief_args = None,
         clip_grad = None,
-        lr_scheduling = False
+        lr_scheduling = False,
+        torch_deterministic = False,
+        num_classes = None,
+        class_temperature = 2.
     ):
         super().__init__()
         
@@ -193,15 +242,22 @@ class Imagine(nn.Module):
 
         if exists(seed):
             assert not bilinear, 'the deterministic (seeded) operation does not work with interpolation, yet (ask pytorch)'
-            torch.set_deterministic(True)
+            print(f'setting seed of {seed}')
+
+            if seed == 0:
+                print('you can override this with --seed argument in the command line, or --random for a randomly chosen one')
+
             torch.manual_seed(seed)
+            torch.set_deterministic(torch_deterministic)
 
         self.epochs = epochs
         self.iterations = iterations
 
         model = BigSleep(
             image_size = image_size,
-            bilinear = bilinear
+            bilinear = bilinear,
+            num_classes = num_classes,
+            class_temperature = class_temperature
         ).cuda()
 
         self.model = model
@@ -223,7 +279,8 @@ class Imagine(nn.Module):
         else:
             self.optimizer = Adam(model.model.latents.parameters(), self.lr)
         if lr_scheduling:    
-            self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)
+            #self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)
+            self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma = .96)
             
         
         self.gradient_accumulate_every = gradient_accumulate_every
@@ -258,7 +315,9 @@ class Imagine(nn.Module):
         else:
             self.optimizer = Adam(self.model.model.latents.parameters(), self.lr)
         if self.lr_scheduling:
-            self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)        
+            #self.lr_scheduler = torch.optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.lr, steps_per_epoch=self.iterations, epochs=self.epochs)
+            self.lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optimizer, gamma = .96)
+
 
     def train_step(self, epoch, i):
         total_loss = 0
@@ -274,7 +333,8 @@ class Imagine(nn.Module):
             torch.nn.utils.clip_grad_norm_(self.model.model.latents.parameters(), self.clip_grad)
         self.optimizer.step()
         self.optimizer.zero_grad()
-        if self.lr_scheduling: self.lr_scheduler.step()
+        
+        if self.lr_scheduling and epoch!=0 and i== 0: self.lr_scheduler.step()
         
 
         if (i + 1) % self.save_every == 0:
